@@ -19,7 +19,7 @@ HttpServerHostName := "10.30.0.253" #the destination ip
 HttpServerPort := 80 #the destination port
 HTTPClientUseSSL := false #no ssl is used
 
-//the values in the POST message
+#the values in the POST message
 PX_INPUT_EP := "10.0.0.10"; #NS input endpoint IP
 PX_OUTPUT_EP := "10.0.0.10"; #NS output endpoint IP
 PX_BANDWIDTH := "20";  #Test bandwidth
@@ -35,7 +35,7 @@ PX_EXPECTED_PACKET_LOSS := ""; #the percentage of packet loss accepted
 
 
 [TESTPORT_PARAMETERS]
-\#system.HTTP_client_port.VERIFYCERTIFICATE := "no"
+#system.HTTP_client_port.VERIFYCERTIFICATE := "no"
 *.HTTP_client_port.http_debugging := "yes" # "no" to turn of the debugging logs
 *.HTTP_client_port.use_notification_ASPs := "no"
 
@@ -45,8 +45,8 @@ KillTimer := 1
 TCPPort := 9036
 
 [EXECUTE]
-\# comment or de-comment the test to be executer
-\#HTTP_Test.tc_http_sendTest  #POST a message to trigger the moogen test
+# comment or de-comment the test to be executer
+#HTTP_Test.tc_http_sendTest  #POST a message to trigger the moogen test
 HTTP_Test.tc_http_getResult #GET the test result. A polling is scheduled every PX_EX_TIME second. 
 
 ```
