@@ -1,0 +1,257 @@
+//
+//  File:               HTTP_Test_no_ASPs
+//  Description:        To demonstrate how to use the test port
+//  Rev:                R8C
+//  Prodnr:             CNL 113 469
+//  Updated:            2007-11-09
+//  Contact:            http://ttcn.ericsson.se
+//  Author:             ETH/RZX Eduard Czimbalmos
+module HTTP_Test {
+
+modulepar {
+	charstring  HttpServerHostName    := "www.eth.ericsson.se";
+  	integer     HttpServerPort        := 80;
+  	boolean     HTTPClientUseSSL      := false;
+  	charstring  PX_INPUT_EP := "PX_INPUT_EP";
+  	charstring  PX_OUTPUT_EP := "PX_OUTPUT_EP";
+  	charstring  PX_BANDWIDTH := "PX_BANDWIDTH";
+  	charstring PX_EX_TIME := "PX_EX_TIME";
+  	charstring PX_TEST_ID := "PX_TEST_ID";
+  	charstring PX_MOONGEN_OUT_PORT := "PX_MOONGEN_OUT_PORT";
+  	charstring PX_MOONGEN_IN_PORT := "PX_MOONGEN_IN_PORT";
+	charstring PX_EXPECTED_RESULT := "done";
+	charstring PX_EXPECTED_LANTENCY := "10";
+	charstring PX_EXPECTED_PACKET_LOSS := "0.2";
+}
+
+import from HTTPmsg_Types all;
+import from HTTPmsg_PortType all;
+import from AbstractStructure all;
+import from Templates all;
+
+type component HTTP_client {
+  port HTTPmsg_PT HTTP_client_port;
+};
+
+
+//=========================================================================
+// Data Types
+//=========================================================================
+
+type record of charstring CHARSTRINGS;
+type record of octetstring OCTETSTRINGS;
+
+
+template Half_close half_close := { client_id := ? };
+template HTTPMessage recv_resp := { response := ? };
+template HTTPMessage recv_req := { request := ? };
+template HTTPMessage recv_err := { erronous_msg := ? };
+
+function f_enc_json(in AbstractTypeSendMessage p_msg_in, out CHARSTRINGS p_msg_json)
+{
+	p_msg_json := {"{", p_msg_in.NS_input_endpoint_IP, p_msg_in.NS_output_endpoint_IP, p_msg_in.Test_bandwidth, p_msg_in.Test_execution_time, p_msg_in.Test_ID, p_msg_in.MoonGen_outbound_traffic_port, p_msg_in.MoonGen_inbound_traffic_port, "}"};
+}
+
+function f_dec_json(in CHARSTRINGS p_msg_json, out AbstractTypeSendMessage p_msg_out)
+{
+	
+}
+
+
+
+function postTest() runs on HTTP_client
+{
+    var HeaderLines hd := { {header_name := "Content-Type", header_value := "application/json"}, {header_name := "Host", header_value := HttpServerHostName}};
+    var charstring bd := "{\"ingressIP\":\"" & PX_INPUT_EP & "\",\"egressIP\":\"" & PX_OUTPUT_EP & "\",\"testBandwidth\":\"" & PX_BANDWIDTH & "\",\"testTime\":\"" & PX_EX_TIME & "\",\"testID\":\"" & PX_TEST_ID & "\",\"moongenOutput\":\"" & PX_MOONGEN_OUT_PORT & "\",\"moongenInput\":\"" & PX_MOONGEN_IN_PORT & "\"}"; 
+
+    var HTTPRequest r := { client_id := omit, method := "POST", uri := "/moongenstart.php", 
+      version_major := 1, version_minor := 1, header := hd, body := bd };
+    log("Original request = ", r);
+
+    var HTTPMessage send_req := { request := r };
+    template Connect_result con := { client_id := ? };
+    var Connect conn := { hostname := HttpServerHostName,
+      portnumber := HttpServerPort, use_ssl := HTTPClientUseSSL };
+    var Close c := { client_id := omit };
+    timer T_guard := 5.0;
+    var integer i;
+    var integer how_many_times := 1; //100
+
+    map(self:HTTP_client_port, system:HTTP_client_port);
+
+    HTTP_client_port.send(conn);
+    var charstring v_myCharstringVar; 
+
+
+    for(i := 0; i < how_many_times; i := i + 1 ) {
+      HTTP_client_port.send(send_req);
+      if(T_guard.running) { T_guard.stop }
+      
+      T_guard.start;
+
+      alt {
+        [] HTTP_client_port.receive(recv_resp) {
+            /*if(i == how_many_times - 1) {
+              HTTP_client_port.send(c);
+              setverdict(pass);
+            }*/
+	    HTTP_client_port.send(c);
+            setverdict(pass);
+          }
+        [] HTTP_client_port.receive(half_close) { 
+            HTTP_client_port.send(c);
+            setverdict(fail);
+            i := how_many_times;
+          }
+        [] HTTP_client_port.receive(con){
+            //HTTP_client_port.send(c); 
+	    if(T_guard.running) { T_guard.stop }
+	    T_guard.start;
+             alt {
+                  [] HTTP_client_port.receive(recv_resp) {
+            
+	              HTTP_client_port.send(c);
+                      setverdict(pass);
+                  }
+		  [] T_guard.timeout {
+                        setverdict(fail, "time out"); }
+            //setverdict(fail, "no type"); 
+             }	
+         }
+        /*[] T_guard.timeout {
+            setverdict(fail, "time out1"); }	*/
+      };
+    }
+
+    unmap(self:HTTP_client_port, system:HTTP_client_port);
+}
+
+function getResult() runs on HTTP_client
+{
+    
+    var HeaderLines hd := {  {header_name := "Host", header_value := HttpServerHostName}};
+    var charstring uri := "/moongendone.php?tid=" & PX_TEST_ID & "&ingressip=" & PX_INPUT_EP & "&egressip=" & PX_OUTPUT_EP;
+
+    var HTTPRequest r := { client_id := omit, method := "GET", uri := uri, 
+      version_major := 1, version_minor := 1, header := hd, body := "" };
+    log("Original request = ", r);
+
+    var HTTPMessage send_req := { request := r };
+    var Connect conn := { hostname := HttpServerHostName,
+      portnumber := HttpServerPort, use_ssl := HTTPClientUseSSL };
+    var Close c := { client_id := omit };
+    timer T_guard := 5.0;
+	timer T_polling := str2float(PX_EX_TIME);
+    var integer i;
+    var integer how_many_times := 1; //100
+	template Connect_result con := { client_id := ? };
+	var HTTPMessage message_http;
+	var MoongenResult moongen_result;
+
+    map(self:HTTP_client_port, system:HTTP_client_port);
+    
+    var boolean available := false; 
+    while (available == false){
+		T_polling.start;
+		T_polling.timeout{
+        HTTP_client_port.send(conn);
+        HTTP_client_port.send(send_req);
+        T_guard.start;
+		alt {
+        	[] HTTP_client_port.receive(recv_resp) -> value message_http {
+				
+				var HTTPResponse resp := message_http.response;
+				var charstring body_string:= resp.body;
+				log("bodystring:",body_string);
+				f_dec_body(body_string, moongen_result);
+            	if (moongen_result.Result == PX_EXPECTED_RESULT){
+					available := true;
+					var integer lost_packet := str2int(moongen_result.PacketsSent)-str2int(moongen_result.PacketsReceived);
+					var float rate := int2float(lost_packet)/str2float(moongen_result.PacketsSent);
+					if (rate < str2float(PX_EXPECTED_PACKET_LOSS) and str2float(moongen_result.AvgLatency) < str2float(PX_EXPECTED_LANTENCY)){
+						setverdict(pass);
+					}
+					else if (rate >= str2float(PX_EXPECTED_PACKET_LOSS) and str2float(moongen_result.AvgLatency) < str2float(PX_EXPECTED_LANTENCY)){
+						setverdict(fail,"packet loss");
+					}
+					else {
+						setverdict(fail,"latency");
+					}
+					
+				}
+              	HTTP_client_port.send(c);
+              	
+          	}
+        	[] HTTP_client_port.receive(half_close) { 
+            	HTTP_client_port.send(c);
+            	setverdict(fail);
+            	i := how_many_times;
+          	}
+        	[] HTTP_client_port.receive (con) {
+            	//HTTP_client_port.send(c); 
+            	//setverdict(fail);
+				log("connection result",con); 
+          	}	
+        	[] T_guard.timeout {
+            	setverdict(fail); }	
+      	};
+		}
+		
+    }
+
+    /*HTTP_client_port.send(conn);
+
+    for(i := 0; i < how_many_times; i := i + 1 ) {
+      HTTP_client_port.send(send_req);
+      if(T_guard.running) { T_guard.stop }
+      
+      T_guard.start;
+
+      alt {
+        [] HTTP_client_port.receive(recv_resp) {
+            if(i == how_many_times - 1) {
+              HTTP_client_port.send(c);
+              setverdict(pass);
+            }
+          }
+        [] HTTP_client_port.receive(half_close) { 
+            HTTP_client_port.send(c);
+            setverdict(fail);
+            i := how_many_times;
+          }
+        [] HTTP_client_port.receive {
+            HTTP_client_port.send(c); 
+            setverdict(fail); 
+          }	
+        [] T_guard.timeout {
+            setverdict(fail); }	
+      };
+    }*/
+
+    unmap(self:HTTP_client_port, system:HTTP_client_port);
+}
+  
+testcase tc_http_sendTest() runs on HTTP_client
+{
+    var HTTP_client client_PTC;
+    client_PTC := HTTP_client.create("client");
+    client_PTC.start(postTest());
+    client_PTC.done
+    
+}
+testcase tc_http_getResult() runs on HTTP_client
+{
+    var HTTP_client client_PTC;
+    client_PTC := HTTP_client.create("client");
+    client_PTC.start(getResult());
+    client_PTC.done
+}
+
+testcase tc_decode_result() runs on HTTP_client
+{
+	var MoongenResult m;
+	f_dec_body("1:2:3:4", m);
+	log ("decode result: ", m);
+}
+
+}

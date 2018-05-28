@@ -1,0 +1,23 @@
+module AbstractStructure {
+
+	type record AbstractTypeSendMessage {
+		charstring NS_input_endpoint_IP,
+		charstring NS_output_endpoint_IP,
+		charstring Test_bandwidth,
+		charstring Test_execution_time,
+		charstring Test_ID,
+		charstring MoonGen_outbound_traffic_port,
+		charstring MoonGen_inbound_traffic_port
+	}
+
+	type record AbstractTypeReceivedMessage {
+		charstring Received_message
+	}
+
+	type record MoongenResult {
+		charstring Result,
+		charstring AvgLatency,
+		charstring PacketsSent,
+		charstring PacketsReceived
+	}
+} 

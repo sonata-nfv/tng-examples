@@ -1,0 +1,57 @@
+module Templates {
+
+	import from AbstractStructure all;
+	
+	template AbstractTypeSendMessage m_message_send(charstring ns_input, charstring ns_output, charstring bandwidth, charstring execution_time, charstring test_id, charstring moon_out_port, charstring moon_in_port) := {
+		NS_input_endpoint_IP := ns_input,
+		NS_output_endpoint_IP := ns_output,
+		Test_bandwidth := bandwidth,
+		Test_execution_time := execution_time,
+		Test_ID := test_id,
+		MoonGen_outbound_traffic_port := moon_out_port,
+		MoonGen_inbound_traffic_port := moon_in_port
+	}
+
+	template AbstractTypeReceivedMessage m_message_received(charstring p_msgContent) := {
+		Received_message := p_msgContent
+	}
+
+
+	function f_dec_body(in charstring p_message_body, out MoongenResult p_moongen_result){
+		var integer len := lengthof(p_message_body);
+		var integer i;
+		var integer begin := 0;
+		var integer end := 0;
+		var charstring temp;
+		var integer j := 0;
+		for (i := 0; i < len; i := i + 1 ){
+			if (p_message_body[i] == ":" or i == len-1 ){
+				begin := end;
+				end := i;
+				if (i == len-1){
+					end := len;
+				}
+				temp := substr(p_message_body,begin,end-begin);
+				
+				if (j == 0){
+					p_moongen_result.Result := temp;
+				}
+				if (j == 1){
+					p_moongen_result.AvgLatency := temp;
+				}
+				if (j == 2){
+					p_moongen_result.PacketsSent := temp;
+				}
+				if (j == 3){
+					p_moongen_result.PacketsReceived := temp;
+				}
+				j := j+1;
+				end := end+1;
+			}
+			
+		}
+	}
+
+	modulepar charstring PX_ADDR;
+	modulepar integer PX_PORT;
+}

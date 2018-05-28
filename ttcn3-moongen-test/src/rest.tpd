@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TITAN_Project_File_Information version="1.0">
+  <ProjectName>Moongen</ProjectName>
+  <Files>
+    <FileResource projectRelativePath="config.cfg" relativeURI="config.cfg"/>
+    <FileResource projectRelativePath="HTTP_Test.ttcn" relativeURI="HTTP_Test.ttcn"/>
+    <FileResource projectRelativePath="HTTPmsg_Types.ttcn" relativeURI="HTTPmsg_Types.ttcn"/>
+    <FileResource projectRelativePath="HTTPmsg_PortType.ttcn" relativeURI="HTTPmsg_PortType.ttcn"/>
+    <FileResource projectRelativePath="HTTPmsg_MessageLen.ttcn" relativeURI="HTTPmsg_MessageLen.ttcn"/>
+    <FileResource projectRelativePath="HTTPmsg_MessageLen_Function.cc" relativeURI="HTTPmsg_MessageLen_Function.cc"/>
+    <FileResource projectRelativePath="HTTPmsg_PT.cc" relativeURI="HTTPmsg_PT.cc"/>
+    <FileResource projectRelativePath="HTTPmsg_PT.hh" relativeURI="HTTPmsg_PT.hh"/>
+    <FileResource projectRelativePath="Abstract_Socket.hh" relativeURI="Abstract_Socket.hh"/>
+    <FileResource projectRelativePath="Abstract_Socket.cc" relativeURI="Abstract_Socket.cc"/>
+    <FileResource projectRelativePath="AbstractStructure.ttcn" relativeURI="AbstractStructure.ttcn"/>
+    <FileResource projectRelativePath="Templates.ttcn" relativeURI="Templates.ttcn"/>
+
+  </Files>
+  <ActiveConfiguration>Default</ActiveConfiguration>
+  <Configurations>
+    <Configuration name="Default">
+      <ProjectProperties>
+        <MakefileSettings>
+          <targetExecutable>build/HTTPmsgTest</targetExecutable>
+          <includeSourceInfo>true</includeSourceInfo>
+          <otherOptimizationFlags>-std=c++11</otherOptimizationFlags>
+	  <linkerLibraries>
+		<listItem>pthread</listItem>
+	  </linkerLibraries>
+        </MakefileSettings>
+        <LocalBuildSettings>
+          <workingDirectory>build</workingDirectory>
+        </LocalBuildSettings>
+      </ProjectProperties>
+    </Configuration>
+  </Configurations>
+</TITAN_Project_File_Information>
