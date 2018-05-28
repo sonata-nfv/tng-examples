@@ -5,6 +5,7 @@
 4. Execution in `./build` : `ttcn3_start ./HTTPmsgTest ../config.cfg` 
 
 ## Configuration file  
+```
 
 [LOGGING]
 LogFile := "log/MoonGen-%n.log"  #the log file path, %n = client in the current case 
@@ -47,3 +48,5 @@ TCPPort := 9036
 \# comment or de-comment the test to be executer
 \#HTTP_Test.tc_http_sendTest  #POST a message to trigger the moogen test
 HTTP_Test.tc_http_getResult #GET the test result. A polling is scheduled every PX_EX_TIME second. 
+
+```
