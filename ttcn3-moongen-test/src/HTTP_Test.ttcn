@@ -61,10 +61,11 @@ function f_dec_json(in CHARSTRINGS p_msg_json, out AbstractTypeSendMessage p_msg
 
 function postTest() runs on HTTP_client
 {
-    var HeaderLines hd := { {header_name := "Content-Type", header_value := "application/json"}, {header_name := "Host", header_value := HttpServerHostName}};
     var charstring bd := "{\"ingressIP\":\"" & PX_INPUT_EP & "\",\"egressIP\":\"" & PX_OUTPUT_EP & "\",\"testBandwidth\":\"" & PX_BANDWIDTH & "\",\"testTime\":\"" & PX_EX_TIME & "\",\"testID\":\"" & PX_TEST_ID & "\",\"moongenOutput\":\"" & PX_MOONGEN_OUT_PORT & "\",\"moongenInput\":\"" & PX_MOONGEN_IN_PORT & "\"}"; 
+	var integer len := lengthof(bd); 
 
-    var HTTPRequest r := { client_id := omit, method := "POST", uri := "/moongenstart.php", 
+	var HeaderLines hd := { {header_name := "Content-Type", header_value := "application/json"}, {header_name := "Host", header_value := HttpServerHostName}, {header_name := "Content-Length", header_value := int2str(len)}};    
+	var HTTPRequest r := { client_id := omit, method := "POST", uri := "/moongenstart.php", 
       version_major := 1, version_minor := 1, header := hd, body := bd };
     log("Original request = ", r);
 
@@ -151,7 +152,9 @@ function getResult() runs on HTTP_client
     map(self:HTTP_client_port, system:HTTP_client_port);
     
     var boolean available := false; 
-    while (available == false){
+	var integer repeat_time := 0;
+    while (available == false and repeat_time < 5){
+		repeat_time := repeat_time+1;
 		T_polling.start;
 		T_polling.timeout{
         HTTP_client_port.send(conn);
@@ -168,6 +171,7 @@ function getResult() runs on HTTP_client
 					available := true;
 					var integer lost_packet := str2int(moongen_result.PacketsSent)-str2int(moongen_result.PacketsReceived);
 					var float rate := int2float(lost_packet)/str2float(moongen_result.PacketsSent);
+					log("lost rate:", rate);
 					if (rate < str2float(PX_EXPECTED_PACKET_LOSS) and str2float(moongen_result.AvgLatency) < str2float(PX_EXPECTED_LANTENCY)){
 						setverdict(pass);
 					}
@@ -233,18 +237,21 @@ function getResult() runs on HTTP_client
   
 testcase tc_http_sendTest() runs on HTTP_client
 {
-    var HTTP_client client_PTC;
+    /*var HTTP_client client_PTC;
     client_PTC := HTTP_client.create("client");
     client_PTC.start(postTest());
-    client_PTC.done
+    client_PTC.done*/
+	postTest();
     
 }
 testcase tc_http_getResult() runs on HTTP_client
 {
-    var HTTP_client client_PTC;
+    /*var HTTP_client client_PTC;
     client_PTC := HTTP_client.create("client");
     client_PTC.start(getResult());
-    client_PTC.done
+    client_PTC.done*/
+	getResult();
+	
 }
 
 testcase tc_decode_result() runs on HTTP_client
