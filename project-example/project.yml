@@ -1,0 +1,21 @@
+descriptor_extension: yml
+version: '0.5'
+files:
+  - path: tango_tango-nsd.yml
+    type: application/vnd.5gtango.nsd
+    tags:
+      - eu.5gtango
+  - path: tango_default-vnf0.yml
+    type: application/vnd.5gtango.vnfd
+    tags:
+      - eu.5gtango
+  - path: tango_default-vnf1.yml
+    type: application/vnd.5gtango.vnfd
+    tags:
+      - eu.5gtango
+package:
+  name: generated-project
+  version: '0.1'
+  maintainer: Tango
+  vendor: Tango
+  description: Default description
