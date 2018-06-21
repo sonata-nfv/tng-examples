@@ -1,7 +1,7 @@
 descriptor_schema: >-
   https://raw.githubusercontent.com/sonata-nfv/tng-schema/master/function-descriptor/vnfd-schema.yml
 vendor: "eu.5gtango"
-name: "smoke-test-nsd"
+name: "smoke-test-vnf1"
 version: '0.1'
 author: "Manuel Peuster, Paderborn University"
 description: A default ubuntu VNF descriptor
