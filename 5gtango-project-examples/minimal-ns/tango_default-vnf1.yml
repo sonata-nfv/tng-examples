@@ -1,9 +1,9 @@
 descriptor_schema: >-
   https://raw.githubusercontent.com/sonata-nfv/tng-schema/master/function-descriptor/vnfd-schema.yml
-vendor: Tango
+vendor: eu.5gtango
 name: default-vnf1
 version: '0.9'
-author: Tango
+author: 5GTANGO
 description: A default ubuntu VNF descriptor
 virtual_deployment_units:
   - id: vdu01

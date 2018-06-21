@@ -16,6 +16,6 @@ files:
 package:
   name: generated-project
   version: '0.1'
-  maintainer: Tango
-  vendor: Tango
+  maintainer: 5GTANGO
+  vendor: eu.5gtango
   description: Default description
