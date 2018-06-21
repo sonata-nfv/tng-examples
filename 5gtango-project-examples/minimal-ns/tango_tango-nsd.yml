@@ -1,9 +1,9 @@
 descriptor_schema: >-
   https://raw.githubusercontent.com/sonata-nfv/tng-schema/master/service-descriptor/nsd-schema.yml
-vendor: Tango
+vendor: eu.5gtango
 name: tango-nsd
 version: '0.9'
-author: Tango
+author: 5GTANGO
 description: Default description
 network_functions:
   - vnf_id: vnf0
