@@ -1,0 +1,169 @@
+/******************************************************************************
+* Copyright (c) 2005, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+* Peter Dimitrov
+* Gabor Szalai
+* Kulcsár Endre
+* Norbert Pinter
+* Zoltan Medve
+* Zsolt Nandor Torok
+* Zsolt Török
+******************************************************************************/
+//
+//  File:               SSHCLIENTasp_echo.ttcn
+//  Rev:                R5A
+//  Prodnr:             CNL 113 320
+
+module SSHCLIENTasp_echo{
+
+import from SSHCLIENTasp_PortType all;
+import from SSHCLIENTasp_Types all;
+
+modulepar charstring usrname;
+modulepar charstring pwd;
+modulepar charstring nodeIPAddr;
+
+
+template ASP_SSH_SetUserID t_userId := { usrname }
+template ASP_SSH_Close t_close := {};
+template ASP_SSH_Connect t_connect := {};
+template ASP_SSH_Status t_status := ?;
+template ASP_SSH_Status t_status_ok := {0, ?};
+template ASP_SSH_PseudoPrompt t_pseudoPrompt := {};
+template ASP_SSH_SetRemotePort t_remotePort := {"22"};
+template ASP_SSH_SetAdditionalParameters t_parameters := {"-C"};
+template ASP_SSH_SetRegexPrompt t_regexPrompt(charstring rp) := {"regex_prompt1", rp};
+template charstring t_Pattern(charstring vl_pattern) := pattern vl_pattern;
+template ASP_SSH t_ASP_SSH :=?;
+
+type component SSH_CT {
+  port SSHCLIENTasp_PT SSH_PCO;
+  timer T_sshResp;
+  var charstring sshRespStr := "";
+}
+
+
+
+altstep as_status() runs on SSH_CT {
+  [] SSH_PCO.receive(t_status_ok){
+T_sshResp.stop;
+    log("as_status: OK received");
+    T_sshResp.start(3.0);
+    repeat;
+  }
+  [] SSH_PCO.receive(t_status){
+    log("as_status: Status received");
+    T_sshResp.stop;
+  }
+}
+
+altstep as_prompt() runs on SSH_CT {
+  [] SSH_PCO.receive(t_pseudoPrompt) {
+    log("as_prompt: PseudoPrompt received");
+    T_sshResp.stop;
+  }
+}
+
+altstep as_conversation_error() runs on SSH_CT {
+  [] SSH_PCO.receive(t_close) {
+    log("as_conversation_error: ASP_SSH_Close received");
+    T_sshResp.stop;
+  }
+}
+
+altstep as_T_SSHresp_timeout() runs on SSH_CT {
+  [] T_sshResp.timeout {
+    log("as_T_SSHresp_timeout: command response timeout");
+  }
+}
+
+altstep as_regular_msg_rec() runs on SSH_CT {
+  var charstring msg;
+  [] SSH_PCO.receive(t_ASP_SSH) -> value msg {
+    T_sshResp.stop;
+    sshRespStr := sshRespStr & msg;
+    log("** msg: " & msg);
+    T_sshResp.start(3.0);
+    repeat;
+  }
+  [] as_status();
+  [] as_prompt();
+  [] as_conversation_error();
+  [] as_T_SSHresp_timeout();
+}
+
+testcase tc1() runs on SSH_CT {
+  var charstring msg;
+
+  log("tc1 started");
+  log("usrname: " & usrname);
+  log("pwd: " & pwd);
+  log("nodeIPAddr: " & nodeIPAddr);
+
+  map(self:SSH_PCO, system:SSH_PCO);
+  T_sshResp.start(10.0);
+
+  //login
+  SSH_PCO.send(t_userId);
+  SSH_PCO.send(t_remotePort);
+  SSH_PCO.send(t_parameters); 
+  SSH_PCO.send(t_connect);
+  
+
+  alt {
+    [] SSH_PCO.receive("Password: "){
+        T_sshResp.stop;
+        SSH_PCO.send(pwd);
+        repeat;
+    }
+    [] as_regular_msg_rec();  
+  }
+
+
+  //send commands to ssh server
+  f_send_command("cd", "", pass);
+  f_send_command("ls", "" , fail);
+
+//logout
+  SSH_PCO.send("exit; exit; logout");
+  T_sshResp.start(3.0);
+
+  alt {
+   [] as_regular_msg_rec();
+  }
+
+  unmap(self:SSH_PCO, system:SSH_PCO);
+  log("tc1 finished");
+
+  if(getverdict == none){
+    log("Verdict don't specified. I am so sorry.");
+    setverdict (inconc);
+  }
+}//testcase 1
+
+
+
+function f_send_command(charstring vl_cmd, charstring vl_pattern, verdicttype vl_verdict) runs on SSH_CT {  
+  SSH_PCO.send(vl_cmd);
+  alt {
+    [] SSH_PCO.receive(t_Pattern(vl_pattern)) {
+      T_sshResp.stop;
+      setverdict(vl_verdict);
+repeat;
+    }
+    [] as_regular_msg_rec();  
+  }
+}// function send command
+
+
+
+ control{
+    execute(tc1());
+ }
+
+}

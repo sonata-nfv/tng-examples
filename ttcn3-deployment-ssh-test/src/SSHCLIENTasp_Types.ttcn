@@ -1,0 +1,56 @@
+/******************************************************************************
+* Copyright (c) 2005, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+* Peter Dimitrov
+* Gabor Szalai
+* Kulcsár Endre
+* Norbert Pinter
+* Zoltan Medve
+* Zsolt Nandor Torok
+* Zsolt Török
+******************************************************************************/
+//
+//  File:               SSHCLIENTasp_Types.ttcn
+//  Description:        SSH CLIENT ASP definition file
+//  Rev:                R5A
+//  Prodnr:             CNL 113 484
+//
+
+
+module SSHCLIENTasp_Types
+{
+////////////////////////////////
+// Types
+type integer ReadMode; // BUFFERED = 0, UNBUFFERED = 1, RAW = 2
+type charstring ASP_SSH;
+type record ASP_SSH_Close {};	// NULL_type
+type record ASP_SSH_PseudoPrompt {};	// NULL_type
+type record ASP_SSH_Status
+{
+  integer     status_code,
+  charstring  status_message
+};
+type record ASP_SSH_SetPrompt
+{ 
+  charstring prompt_name,
+  charstring prompt_value
+};
+type record ASP_SSH_SetRegexPrompt
+{ 
+  charstring prompt_name,
+  charstring prompt_value
+};
+type record ASP_SSH_ClearPrompt {}; // NULL_type
+type record ASP_SSH_SetMode { ReadMode readmode };
+type record ASP_SSH_Connect {};	// NULL_type
+type record ASP_SSH_SetUserID { charstring usrid };
+type record ASP_SSH_SetRemoteHost { charstring remotehost };
+type record ASP_SSH_SetRemotePort { charstring remoteport };
+type record ASP_SSH_SetAdditionalParameters { charstring additionalparameters };
+
+} // module

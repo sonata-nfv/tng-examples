@@ -1,0 +1,482 @@
+/******************************************************************************
+* Copyright (c) 2005, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+* Peter Dimitrov
+* Gabor Szalai
+* Kulcsár Endre
+* Norbert Pinter
+* Zoltan Medve
+* Zsolt Nandor Torok
+* Zsolt Török
+******************************************************************************/
+//
+//  File:               SSHCLIENTasp_PT.hh
+//  Description:        SSHCLIENTasp test port header
+//  Prodnr:             CNL 113 484
+//  Rev:                R5A
+// 
+
+
+module SSHCLIENTasp_functions
+{
+
+import from SSHCLIENTasp_PortType all;
+import from SSHCLIENTasp_Types all;
+
+
+modulepar
+{
+  float sshDefaultRespTimeout := 2.1
+  float login_waittime;
+
+}
+
+//////////////////////////
+// Definitions
+
+////////////////////////////////
+// Templates
+template ASP_SSH_SetUserID t_ASP_SSH_SetUserID(charstring ui) := { ui };
+template ASP_SSH_SetPrompt t_ASP_SSH_SetPrompt(charstring sp) := { "prompt1", sp };
+template ASP_SSH_SetRegexPrompt t_ASP_SSH_SetRegexPrompt(charstring sp) := { "regex_prompt1", sp };
+template ASP_SSH_ClearPrompt t_ASP_SSH_ClearPrompt := {};
+template ASP_SSH_SetRemoteHost t_ASP_SSH_SetRemoteHost(charstring rh) := { rh };
+template ASP_SSH_SetRemotePort t_ASP_SSH_SetRemotePort(charstring rp) := { rp };
+template ASP_SSH_SetAdditionalParameters t_ASP_SSH_SetAdditionalParameters(charstring ap) := { ap };
+template ASP_SSH_SetMode t_ASP_SSH_SetMode(ReadMode readmode) := { readmode };
+template ASP_SSH_Connect t_ASP_SSH_Connect := {};
+template ASP_SSH_Close t_ASP_SSH_Close := {};
+template ASP_SSH_PseudoPrompt t_ASP_SSH_PseudoPrompt := ?;
+template ASP_SSH_Status t_ASP_SSH_Status := ?;
+template ASP_SSH_Status t_ASP_SSH_Status_OK := {0, ?};
+template ASP_SSH t_ASP_SSH :=?;
+
+type record cliPattern2match {
+    charstring  pat,
+    boolean     res
+}
+type record of cliPattern2match cliPatternlist;
+
+type record CommandStep {
+    charstring cmd,
+    cliPatternlist PatternList
+}
+
+type record of CommandStep CommandList;
+
+type component SSH_CT
+{
+    port SSHCLIENTasp_PT SSH_PCO;
+    timer T_sshResp;
+    var charstring sshRespStr := "";
+}
+
+type record of SSH_CT SSH_CT_list;
+
+type component MTC_CT
+{
+    var SSH_CT_list cliClient;
+}
+
+/////////////////////////////////
+// Altsteps
+altstep as_conversation_error() runs on SSH_CT
+{
+    [] SSH_PCO.receive(t_ASP_SSH_Close)
+        {
+        log("as_conversation_error: ASP_SSH_Close received");
+        T_sshResp.stop;
+        }
+} // as_conversation_error()
+
+altstep as_T_SSHresp_timeout() runs on SSH_CT
+{
+    [] T_sshResp.timeout
+        {
+        log("as_T_SSHresp_timeout: command response timeout");
+        }
+} // as_T_SSHresp_timeout()
+
+altstep as_prompt() runs on SSH_CT
+{
+    [] SSH_PCO.receive(t_ASP_SSH_PseudoPrompt)
+        {
+        log("as_prompt: ASP_SSH_PseudoPrompt received");
+        T_sshResp.stop;
+        }
+} // as_conversation_error()
+
+altstep as_status() runs on SSH_CT
+{
+    [] SSH_PCO.receive(t_ASP_SSH_Status_OK)
+        {
+        log("as_status: ASP_SSH_Status OK received");
+        T_sshResp.stop;
+        repeat;
+        }
+    [] SSH_PCO.receive(t_ASP_SSH_Status)
+        {
+        log("as_status: ASP_SSH_Status received");
+        T_sshResp.stop;
+        }
+} // as_conversation_error()
+
+
+
+//////////////////////////////////////////
+// Generic functions
+function f_sshCLIconversation(in CommandList clist, in float cliTimeOut) runs on SSH_CT return boolean
+{
+    var charstring respFragment := "";
+	template charstring receivedMessage := "";
+    var boolean success := false;
+    var integer i := 0;
+
+    do
+    {
+    	sshRespStr := "";
+    	if (lengthof(clist[i].cmd)>0) { 
+			log("sent cmd = " & clist[i].cmd);
+			SSH_PCO.send(clist[i].cmd); 
+		}
+    	T_sshResp.start(cliTimeOut);
+
+    	alt
+    	{
+    		[] SSH_PCO.receive(ASP_SSH:?) -> value respFragment
+        	{
+        		T_sshResp.stop;
+        		sshRespStr := sshRespStr & respFragment; // collect and concat fragments if any
+				log("sshRespStr = " & sshRespStr);
+        		T_sshResp.start(cliTimeOut);
+        		//repeat;
+        	}
+    		[] as_status()
+    		[] as_prompt()
+    		[] as_conversation_error()
+    		[] as_T_SSHresp_timeout()
+
+    	} // alt
+
+    	
+        var integer j := 0;
+		//log("sizeof clist = " & int2str(sizeof(clist)));
+        do{
+            var charstring tmp_pattern := clist[i].PatternList[j].pat;
+			log("sshRespStr = " & sshRespStr);
+            if ( match(sshRespStr, pattern "{tmp_pattern}") xor clist[i].PatternList[j].res) {
+                success := false;
+            } else {
+                success := true;
+            }
+            log("DEBUG: i=" & int2str(i) & " j=" & int2str(j) & " pattern=" & tmp_pattern & " success=", success);
+            j := j + 1;
+        } while(j<sizeof(clist[i].PatternList) and success);    // pattern evaluation
+
+    	i := i + 1;
+    }
+    while(i<sizeof(clist) and success); // command list
+
+    log("DEBUG: success=", success, ", sshRespStr=", sshRespStr);
+
+    return success;
+} // f_sshCLIconversation()
+
+
+
+function f_sshLogin(in charstring username, in charstring passwd) runs on SSH_CT return boolean
+{
+    var CommandList cl := {};
+	
+    if (passwd == "") { // no password required at login
+        cl := {
+            {
+            cmd := "",
+            PatternList := {
+                    {pat := "*onnection refused*", res := false},
+                    {pat := "*onnection timed out*", res := false}
+                }
+            }
+        } //cl
+    } else {
+        cl := {
+            {
+            cmd := "",
+            PatternList := {
+                    {pat := "*assword:*", res := true},
+                    {pat := "*onnection refused*", res := false},
+                    {pat := "*onnection timed out*", res := false}
+                }
+            },
+            {
+            cmd := passwd,
+            PatternList := {
+                    {pat := "*ermission denied*", res := false},
+                    {pat := "*closed*", res := false}
+
+                }
+            }
+            
+        } //cl
+    }
+
+    map(system:SSH_PCO, self:SSH_PCO);
+    SSH_PCO.send(t_ASP_SSH_SetUserID(username));
+
+//
+//    SSH_PCO.send(t_ASP_SSH_ClearPrompt);
+//    SSH_PCO.send(t_ASP_SSH_SetPrompt("telorb"));
+//    SSH_PCO.send(t_ASP_SSH_SetRegexPrompt("*t[a-z]#(3,3)rb@Proc_m0_s1:~> "));
+      SSH_PCO.send(t_ASP_SSH_SetMode(0));
+
+      SSH_PCO.send(t_ASP_SSH_SetRemotePort("22"));
+
+      SSH_PCO.send(t_ASP_SSH_SetAdditionalParameters("-C"));
+
+
+//
+
+    SSH_PCO.send(t_ASP_SSH_Connect);
+
+    if(f_sshCLIconversation(cl, login_waittime)) { // Longer response time at login
+        return true;
+    } else { return false }
+} // f_sshLogin()
+
+
+function f_sshLogout(in boolean unmapSSH) runs on SSH_CT
+{
+    var CommandList cl := {
+        {
+        cmd := " exit; exit; logout",
+        PatternList := {
+                {pat := "*", res := true} // FIXME
+            }
+        }
+    }
+    if(f_sshCLIconversation(cl, sshDefaultRespTimeout)) { log("DEBUG: logged out gracefully."); }
+    if (unmapSSH) {
+        log("DEBUG: closing SSH");
+        unmap(system:SSH_PCO, self:SSH_PCO);
+    }
+} // f_sshLogout()
+
+
+
+function f_sshChmod(in charstring chmod_options, in charstring files2chmod) runs on SSH_CT return boolean
+{
+    var CommandList cmdList := {
+        {
+            cmd := " chmod " & chmod_options & " " & files2chmod,
+            PatternList := {
+                {pat := "*o such file or directory*", res := false},
+                {pat := "*ot a directory*", res := false}
+            }
+        }
+    }
+    SSH_PCO.send(t_ASP_SSH_SetMode(0));
+    if (f_sshCLIconversation(cmdList, sshDefaultRespTimeout)) {
+        log("DEBUG: " & cmdList[0].cmd);
+        return true;
+    } else {
+        log("DEBUG: error by executing " & cmdList[0].cmd);
+        return false;
+    }
+
+} // f_sshChmod
+
+
+function f_sshCd(in charstring dirname) runs on SSH_CT return boolean
+{
+    var CommandList cl := {
+        {
+        cmd := " cd " & dirname,
+        PatternList := {
+                {pat := "*o such file or directory*", res := false},
+                {pat := "*ot a directory*", res := false}
+            }
+        }
+    }
+    if(f_sshCLIconversation(cl, sshDefaultRespTimeout)) {
+        return true;
+    } else { return false }
+} // f_sshCd()
+
+function f_sshCp(in charstring scrfile, in charstring destfile) runs on SSH_CT return boolean
+{
+    var CommandList cl := {
+        {
+        cmd := " cp " & scrfile & " " & destfile,
+        PatternList := {
+                {pat := "*o such file or directory*", res := false},
+                {pat := "*same file*", res := false},
+                {pat := "*denied*", res := false}
+
+            }
+        }
+    }
+    if(f_sshCLIconversation(cl, sshDefaultRespTimeout)) {
+        return true;
+    } else { return false }
+} // f_sshCp()
+
+
+function f_sshMv(in charstring mv_src, in charstring mv_dest) runs on SSH_CT return boolean
+{
+    var CommandList cmdList := {
+        {
+            cmd := " mv " & mv_src & " " & mv_dest,
+            PatternList := {
+                {pat := "*o such file or directory*", res := false},
+                {pat := "*ot a directory*", res := false},
+                {pat := "*overriding mode*", res := false}
+            }
+        }
+    }
+
+    if (f_sshCLIconversation(cmdList, sshDefaultRespTimeout)) {
+        log("DEBUG: " & cmdList[0].cmd);
+        return true;
+    } else {
+        log("DEBUG: error by executing " & cmdList[0].cmd);
+        return false;
+    }
+
+} // f_sshMv
+
+
+function f_sshFileExists(in charstring myfile) runs on SSH_CT return boolean
+{
+    var CommandList cmdList := {
+        {
+            cmd := " ls " & myfile,
+            PatternList := {
+                {pat := "*o such file or directory*", res := false},
+                {pat := "*" & myfile & "*", res := true}
+            }
+        }
+    }
+
+    if (f_sshCLIconversation(cmdList, sshDefaultRespTimeout)) {
+        log("DEBUG: " & cmdList[0].cmd);
+        return true;
+    } else {
+        log("DEBUG: error by executing " & cmdList[0].cmd);
+    }
+    return false;
+} //f_sshFileExists
+
+
+
+function f_sshLs(in charstring lsparam) runs on SSH_CT return charstring
+{
+
+    var CommandList cl := {
+        {
+        cmd := " ls " & lsparam,
+        PatternList := {
+                {pat := "*o such file or directory*", res := false},
+                {pat := "*ot a directory*", res := false}
+            }
+        }
+    }
+    if(f_sshCLIconversation(cl, sshDefaultRespTimeout)) {
+        return sshRespStr;
+    } else { return "f_sshLs: error" }
+} // f_sshLs
+
+function f_sshRm(in charstring rmparam) runs on SSH_CT return charstring
+{
+    var CommandList cl := {
+        {
+        cmd := " rm " & rmparam,
+        PatternList := {
+                {pat := "*o such file or directory*", res := false},
+                {pat := "*ot a directory*", res := false}
+            }
+        }
+    }
+    if(f_sshCLIconversation(cl, sshDefaultRespTimeout)) {
+        return sshRespStr;
+    } else { return "f_sshRm: error" }
+} // f_sshRm
+
+//this function is useful if dir may contain lots and lots of files and rm could say 'too many arguments'
+
+function f_sshSsh(in charstring ipaddr, in charstring passwd) runs on SSH_CT return boolean
+{
+    var CommandList cl := {};
+
+    if (passwd == "") { // if no password required at login
+        cl := {
+            {
+            cmd := " ssh " & ipaddr,
+            PatternList := {
+                    {pat := "*onnection refused*", res := false},
+                    {pat := "*onnection timed out*", res := false}
+                }
+            },
+            {
+            cmd := "\n",
+            PatternList := {
+                    {pat := "*", res := true},
+                    {pat := "*ermission denied*", res := false}
+                }
+            }
+        } //cl
+    } else {
+        cl := {
+            {
+            cmd := " ssh " & ipaddr,
+            PatternList := {
+                    {pat := "*assword:*", res := true},
+                    {pat := "*onnection refused*", res := false},
+                    {pat := "*onnection timed out*", res := false}
+                }
+            },
+            {
+            cmd := passwd,
+            PatternList := {
+                    {pat := "*ermission denied*", res := false},
+                    {pat := "*closed*", res := false}
+
+                }
+            },
+            {
+            cmd := "\n",
+            PatternList := {
+                    {pat := "*", res := true},
+                    {pat := "*ermission denied*", res := false}
+                }
+            }
+        } //cl
+    }
+
+    if(f_sshCLIconversation(cl, 15.0)) { // Longer response time at login
+        return true;
+    } else { return false }
+
+} // f_sshSsh
+
+function f_sshExit() runs on SSH_CT return boolean
+{
+    var CommandList cl := {
+        {
+        cmd := " exit",
+        PatternList := {
+                {pat := "*o such file or directory*", res := false},
+                {pat := "*ot a directory*", res := false}
+            }
+        }
+    }
+    if(f_sshCLIconversation(cl, sshDefaultRespTimeout)) {
+        return true;
+    } else { return false}
+} // f_sshExit
+
+} // module

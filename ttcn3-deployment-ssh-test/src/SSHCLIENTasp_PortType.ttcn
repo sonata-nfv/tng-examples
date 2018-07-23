@@ -1,0 +1,51 @@
+/******************************************************************************
+* Copyright (c) 2005, 2015  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+* Peter Dimitrov
+* Gabor Szalai
+* Kulcsár Endre
+* Norbert Pinter
+* Zoltan Medve
+* Zsolt Nandor Torok
+* Zsolt Török
+******************************************************************************/
+//
+//  File:               SSHCLIENTasp_PortType.ttcn
+//  Description:        SSHCLIENTasp testport definition file
+//  Rev:                R5A
+//  Prodnr:             CNL 113 484
+//
+
+
+module SSHCLIENTasp_PortType
+{
+
+import from SSHCLIENTasp_Types all;
+
+//*****************************************************************************
+//Port type definitions
+//*****************************************************************************
+
+
+type port SSHCLIENTasp_PT message {
+    inout ASP_SSH;
+    in    ASP_SSH_Close;
+    in    ASP_SSH_PseudoPrompt;
+    in    ASP_SSH_Status;
+    out   ASP_SSH_SetPrompt;
+    out   ASP_SSH_SetRegexPrompt;
+    out   ASP_SSH_ClearPrompt;
+    out   ASP_SSH_SetMode;
+    out   ASP_SSH_Connect;
+    out   ASP_SSH_SetUserID;
+    out   ASP_SSH_SetRemoteHost;
+    out   ASP_SSH_SetRemotePort;
+    out   ASP_SSH_SetAdditionalParameters;
+}
+
+} //module

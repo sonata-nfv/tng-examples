@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TITAN_Project_File_Information version="1.0">
+  <ProjectName>Deployment</ProjectName>
+  <Files>
+    <FileResource projectRelativePath="SSHCLIENTasp_demo.cfg" relativeURI="SSHCLIENTasp_demo.cfg"/>
+    <FileResource projectRelativePath="SSHCLIENTasp_demo.ttcn" relativeURI="SSHCLIENTasp_demo.ttcn"/>
+    <!--<FileResource projectRelativePath="SSHCLIENTasp_echo.cfg" relativeURI="SSHCLIENTasp_echo.cfg"/>
+    <FileResource projectRelativePath="SSHCLIENTasp_echo.ttcn" relativeURI="SSHCLIENTasp_echo.ttcn"/>-->
+    <FileResource projectRelativePath="SSHCLIENTasp_Types.ttcn" relativeURI="SSHCLIENTasp_Types.ttcn"/>
+    <FileResource projectRelativePath="SSHCLIENTasp_PortType.ttcn" relativeURI="SSHCLIENTasp_PortType.ttcn"/>
+	  <FileResource projectRelativePath="SSHCLIENTasp_functions.ttcn" relativeURI="SSHCLIENTasp_functions.ttcn"/>
+    <FileResource projectRelativePath="SSHCLIENTasp_PT.cc" relativeURI="SSHCLIENTasp_PT.cc"/>
+    <FileResource projectRelativePath="SSHCLIENTasp_PT.hh" relativeURI="SSHCLIENTasp_PT.hh"/>
+
+  </Files>
+  <ActiveConfiguration>Default</ActiveConfiguration>
+  <Configurations>
+    <Configuration name="Default">
+      <ProjectProperties>
+        <MakefileSettings>
+          <targetExecutable>build/DeploymentTest</targetExecutable>
+          <includeSourceInfo>true</includeSourceInfo>
+          <otherOptimizationFlags>-std=c++11 </otherOptimizationFlags>
+	  <linkerLibraries>
+		      <listItem>pthread</listItem>
+          <listItem>util</listItem>
+	  </linkerLibraries>
+        </MakefileSettings>
+        <LocalBuildSettings>
+          <workingDirectory>build</workingDirectory>
+        </LocalBuildSettings>
+      </ProjectProperties>
+    </Configuration>
+  </Configurations>
+</TITAN_Project_File_Information>
