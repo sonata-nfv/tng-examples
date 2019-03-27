@@ -24,7 +24,7 @@ phases:
             description: Content Producer Emulator (CPE) To generate a RTMP flow
             parameters:
               - key: AGGREGATOR
-                value: ma-vnfd.rtmp.serviceendpoint
+                value: "${ma-vnfd/rtmp/serviceendpoint}"
               - key: STREAM
                 value: plane
           - id: ffprobe
@@ -33,7 +33,7 @@ phases:
             description: Ffprobe
             parameters:
               - key: STREAMING_ENGINE
-                value: mse-vnfd.hls.serviceendpoint
+                value: "${mse-vnfd/hls/serviceendpoint}"
               - key: STREAM
                 value: plane
           - id: cce
@@ -43,7 +43,7 @@ phases:
               engine
             parameters:
               - key: STREAMING_ENGINE
-                value: mse-vnfd.hls.serviceendpoint
+                value: "${mse-vnfd/hls/serviceendpoint}"
               - key: STREAM
                 value: plane
           - id: parser
