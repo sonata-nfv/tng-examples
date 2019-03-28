@@ -23,6 +23,10 @@
     "service_platforms": "sonata",
     "test_tags": "rtmp-media-service",
     "test_category": "benchmarking",
+    "test_descriptor_uuid":"deb05341-1337-1337-1337-1c3ecd41e51d",
+    "package_descriptor_uuid":"f433fb88-7490-4e50-9fdc-d9f19bf74907",
+    "network_service_descriptor_uuid":"d4677cba-8d6e-4975-a2e8-00b26efa4e71",
+    "service_instance_uuid":"0187fd2c-f80f-4f26-958b-b9cff0daff09",
     "phases": [
       {
         "id": "setup",
