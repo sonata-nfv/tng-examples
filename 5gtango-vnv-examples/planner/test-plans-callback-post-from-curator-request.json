@@ -1,0 +1,13 @@
+{
+  "event_actor": "Curator",
+  "status": "COMPLETED",
+  "test_plan_uuid": "TEST4PLAN4UUID",
+  "test_results": [
+    {
+      "test_result_uuid": "TEST4RESULT4UUID",
+      "test_status": "COMPLETED",
+      "test_uuid": "TEST4UUID"
+    }
+  ],
+  "test_results_uuid": "TEST4RESULT4UUID",
+}
