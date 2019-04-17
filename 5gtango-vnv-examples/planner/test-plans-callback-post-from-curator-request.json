@@ -1,13 +1,11 @@
 {
   "event_actor": "Curator",
+  "test_plan_uuid": "33181247-b2a8-42f5-a540-fd626b8dd06e",
   "status": "COMPLETED",
-  "test_plan_uuid": "TEST4PLAN4UUID",
   "test_results": [
     {
-      "test_result_uuid": "TEST4RESULT4UUID",
-      "test_status": "COMPLETED",
-      "test_uuid": "TEST4UUID"
-    }
-  ],
-  "test_results_uuid": "TEST4RESULT4UUID",
+      "test_uuid": "39fbc2b1-efb6-44c0-974a-655afeb77034",
+      "test_results_uuid": "56a05790-e180-409c-9690-defc4c72775a",
+      "test_status": "COMPLETED"}
+  ]
 }
