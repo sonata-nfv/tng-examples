@@ -1,0 +1,153 @@
+last_test: false
+nsd:
+  author: 'Ignacio Dominguez @: atos'
+  connection_points:
+  - {id: nscpexternal, interface: ipv4, type: external}
+  description: This NS provides the video streaming service for the immersive media
+    pilot.
+  descriptor_schema: https://raw.githubusercontent.com/sonata-nfv/tng-schema/master/service-descriptor/nsd-schema.yml
+  name: mediapilot-service
+  network_functions:
+  - {vnf_id: vnf-ma, vnf_name: vnf-ma, vnf_vendor: eu.5gtango, vnf_version: '0.2'}
+  - {vnf_id: vnf-mse, vnf_name: vnf-mse, vnf_vendor: eu.5gtango, vnf_version: '0.2'}
+  - {vnf_id: vnf-cms, vnf_name: vnf-cms, vnf_vendor: eu.5gtango, vnf_version: '0.1'}
+  testing_tags: [http]
+  vendor: eu.sonata-nfv
+  version: '0.2'
+  virtual_links:
+  - connection_points_reference: ['vnf-ma:rtmp', 'vnf-mse:hls', 'vnf-cms:api', nscpexternal]
+    connectivity_type: E-LAN
+    id: vlexternal
+  - connection_points_reference: ['vnf-cms:api', 'vnf-ma:api']
+    connectivity_type: E-Line
+    id: cms-aggregator
+  - connection_points_reference: ['vnf-ma:rtmp', 'vnf-mse:rtmp']
+    connectivity_type: E-Line
+    id: aggregator-mse
+test_plan_callbacks:
+- event_actor: Curator
+  status: COMPLETED
+  test_plan_uuid: null
+  test_results:
+  - {test_result_uuid: null, test_status: null, test_uuid: null}
+  url: /test-plans/on-change/completed
+- event_actor: Curator
+  status: COMPLETED
+  test_plan_uuid: null
+  test_results:
+  - {test_result_uuid: null, test_status: null, test_uuid: null}
+  url: /test-plans/on-change
+testd:
+  author: Ignacio Dominguez, Felipe Vicens (ATOS)
+  description: Performance test for video analysis
+  descriptor_schema: https://raw.githubusercontent.com/sonata-nfv/tng-schema/master/test-descriptor/testdescriptor-schema.yml
+  name: test-immersive-media
+  phases:
+  - id: setup
+    steps:
+    - {action: deploy, description: Deploying a NS, name: deployment}
+    - action: configure
+      description: null
+      name: configuration
+      probes:
+      - description: A service initial configuration container
+        id: initiator
+        image: ignaciodomin/media-initiator:dev
+        name: initiator
+        parameters:
+        - {key: CAMERA, value: test}
+        - {key: CMS, value: '$(vnf-cms/endpoints/id:floating_ip/address)'}
+        - {key: MA, value: '$(vnf-ma/endpoints/id:floating_ip/address)'}
+        - {key: MSE, value: '$(vnf-mse/endpoints/id:floating_ip/address)'}
+      - description: Ffprobe
+        id: ffprobe
+        image: ignaciodomin/media-ffprobe:dev
+        name: ffprobe
+        parameters:
+        - {key: STREAMING_ENGINE, value: '$(vnf-mse/endpoints/id:floating_ip/address)'}
+        - {key: STREAM, value: test}
+      - description: Parser
+        id: parser
+        image: ignaciodomin/media-parser:dev
+        name: parser
+        parameters: []
+      - description: Content Producer Emulator (CPE) To generate a RTMP flow
+        id: cpe
+        image: ignaciodomin/media-cpe:plane
+        name: cpe
+        parameters:
+        - {key: AGGREGATOR, value: '$(vnf-ma/endpoints/id:floating_ip/address)'}
+        - {key: APP, value: test}
+        - {key: STREAM, value: test}
+      - description: Content Consumer Emulator (CCE) To play HLS flows from Streaming
+          engine
+        id: cce
+        image: ignaciodomin/media-cce:dev
+        name: cce
+        parameters:
+        - {key: STREAMING_ENGINE, value: '$(vnf-mse/endpoints/id:floating_ip/address)'}
+        - {key: STREAM, value: test}
+  - id: exercise
+    steps:
+    - command: /bin/sh
+      dependencies: []
+      description: Starting the initiator
+      entrypoint: /app/entrypoint.sh
+      index: 1
+      instances: 1
+      name: initiator
+      output:
+      - {results: logs.txt}
+      run: initiator
+    - command: /bin/sh
+      description: Starting the CPE that simulates the camera
+      entrypoint: /app/entrypoint.sh
+      index: 1
+      instances: 1
+      name: cpe
+      output:
+      - {results: logs.txt}
+      run: cpe
+      start_delay: 5
+    - dependencies: [initiator]
+      description: Starting the CCE that simulates the consumer
+      entrypoint: /app/entrypoint.sh
+      index: 2
+      instances: 1
+      name: ffprobe
+      output:
+      - {results: logs.txt}
+      run: ffprobe
+      start_delay: 10
+    - dependencies: [initiator]
+      description: Starting the CCE that simulates the consumer
+      entrypoint: /app/entrypoint.sh
+      index: 3
+      instances: 1
+      name: cce
+      output:
+      - {results: logs.txt}
+      run: cce
+      start_delay: 25
+    - dependencies: [initiator, cpe, ffprobe, cce]
+      description: Starting the CCE that simulates the consumer
+      entrypoint: /app/entrypoint.sh
+      index: 4
+      instances: 1
+      name: parser
+      output:
+      - {results: result.json}
+      run: parser
+  - id: verification
+    steps:
+    - conditions:
+      - {condition: <, file: result.json, find: lost-frames, name: lost-frames, type: json,
+        value: '90', verdict: pass}
+      description: Check obtained results
+      name: parser
+      step: parser
+  service_platforms: [SONATA]
+  test_category: [benchmarking]
+  test_tags: [rtmp-media-service]
+  vendor: eu.5gtango.atos
+  version: '0.1'
